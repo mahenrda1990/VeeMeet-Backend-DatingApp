@@ -1,7 +1,14 @@
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 from app.api import auth, profile, filters, discover, likes, spotlight, users
+import os
+
+UPLOAD_DIR = "/tmp/uploads"
+os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 app = FastAPI(title="Dating App API")
+
+app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
 
 app.include_router(auth.router, prefix="/auth", tags=["Auth"])
 app.include_router(profile.router, prefix="/profile", tags=["Profile"])

@@ -1,7 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException, Header
+from fastapi import APIRouter, Depends, HTTPException, Header, File, UploadFile, Request, Form
 from sqlalchemy.orm import Session
 from uuid import UUID
 from typing import List, Optional
+import os
+import shutil
+import uuid as uuid_lib
 from app.core.database import SessionLocal
 from app.schemas.user import UserUpdate, UserProfileResponse, ProfilePhotoResponse, RegistrationStepUpdate
 from app.schemas.attribute import AttributeCreate, AttributeResponse
@@ -9,6 +12,9 @@ from app.schemas.photo import PhotoCreate, PhotoReorder
 from app.services.user_service import get_user_by_id, update_user_profile, update_registration_step
 from app.services.attribute_service import set_user_attribute, get_user_attributes, delete_user_attribute
 from app.services.photo_service import add_profile_photo, get_user_photos, delete_photo, reorder_photos
+from app.models.photo import ProfilePhoto
+
+UPLOAD_DIR = "/tmp/uploads"
 
 router = APIRouter()
 
@@ -145,6 +151,52 @@ def get_user_profile(user_id: UUID, db: Session = Depends(get_db)):
     )
 
 # Photo endpoints
+@router.post("/photos/upload", response_model=ProfilePhotoResponse)
+async def upload_photo_file(
+    request: Request,
+    file: UploadFile = File(...),
+    position: int = Form(0),
+    db: Session = Depends(get_db),
+    current_user_id: UUID = Depends(get_current_user_id),
+):
+    """Upload a photo file and save it to the profile."""
+    os.makedirs(UPLOAD_DIR, exist_ok=True)
+    ext = os.path.splitext(file.filename or "photo.jpg")[1] or ".jpg"
+    filename = f"{uuid_lib.uuid4()}{ext}"
+    file_path = os.path.join(UPLOAD_DIR, filename)
+
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+
+    # Delete any existing photo at this position first
+    existing = db.query(ProfilePhoto).filter(
+        ProfilePhoto.user_id == current_user_id,
+        ProfilePhoto.position == position,
+    ).first()
+    if existing:
+        # Remove old file if it was stored locally
+        try:
+            old_filename = existing.photo_url.split("/uploads/")[-1]
+            old_path = os.path.join(UPLOAD_DIR, old_filename)
+            if os.path.exists(old_path):
+                os.remove(old_path)
+        except Exception:
+            pass
+        db.delete(existing)
+        db.commit()
+
+    base_url = str(request.base_url).rstrip("/")
+    photo_url = f"{base_url}/uploads/{filename}"
+
+    photo = add_profile_photo(db, current_user_id, photo_url, position)
+    return ProfilePhotoResponse(
+        id=photo.id,
+        photo_url=photo.photo_url,
+        position=photo.position,
+        created_at=photo.created_at,
+    )
+
+
 @router.post("/photos", response_model=ProfilePhotoResponse)
 def add_photo(photo_data: PhotoCreate, db: Session = Depends(get_db), current_user_id: UUID = Depends(get_current_user_id)):
     """Add a new profile photo"""
