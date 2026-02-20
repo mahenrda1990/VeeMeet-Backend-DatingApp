@@ -19,6 +19,7 @@ class PhoneLoginRequest(BaseModel):
     phone_number: str  # E.164 format, e.g. +919876543210
 
 class UserUpdate(BaseModel):
+    email: Optional[str] = None
     first_name: Optional[str] = None
     birth_date: Optional[date] = None
     gender: Optional[str] = None
