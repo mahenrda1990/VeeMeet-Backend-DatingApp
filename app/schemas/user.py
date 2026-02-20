@@ -28,6 +28,7 @@ class UserUpdate(BaseModel):
     show_gender_on_profile: Optional[bool] = None
     gender_visible_labels: Optional[List[str]] = None
     email_marketing_opt_in: Optional[bool] = None
+    notifications_enabled: Optional[bool] = None
     mode: Optional[str] = None
     dating_preferences: Optional[List[str]] = None
     open_to_everyone: Optional[bool] = None
@@ -68,6 +69,7 @@ class UserResponse(BaseModel):
     dating_intentions: Optional[List[str]] = None
     height_cm: Optional[int] = None
     interests: Optional[List[str]] = None
+    notifications_enabled: Optional[bool] = None
     location_latitude: Optional[float] = None
     location_longitude: Optional[float] = None
     location_address: Optional[str] = None

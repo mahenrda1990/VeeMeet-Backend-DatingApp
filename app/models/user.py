@@ -25,6 +25,7 @@ class User(Base):
     show_gender_on_profile = Column(Boolean, default=True)
     gender_visible_labels = Column(ARRAY(String))
     email_marketing_opt_in = Column(Boolean, default=False)
+    notifications_enabled = Column(Boolean, nullable=True)
     mode = Column(String)
     dating_preferences = Column(ARRAY(String))
     open_to_everyone = Column(Boolean, default=False)
